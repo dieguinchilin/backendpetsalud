@@ -23,6 +23,7 @@ public class SecurityConfig {
     public SecurityConfig(
             JwtAuthenticationFilter jwtFilter,
             UsuarioDetailsService usuarioDetailsService) {
+
         this.jwtFilter = jwtFilter;
         this.usuarioDetailsService = usuarioDetailsService;
     }
@@ -33,6 +34,7 @@ public class SecurityConfig {
 
         http
             .csrf(csrf -> csrf.disable())
+
             .authorizeHttpRequests(auth -> auth
 
                 // Registro e inicio de sesión
@@ -41,28 +43,47 @@ public class SecurityConfig {
                     "/api/login"
                 ).permitAll()
 
-                // Administración
+                // Administración: solo GERENTE
                 .requestMatchers("/api/admin/**")
                 .hasRole("GERENTE")
+
+                // NUEVA REGLA:
+                // Consultar todas las ventas: solo GERENTE
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/ventas"
+                ).hasRole("GERENTE")
 
                 // Recursos clínicos
                 .requestMatchers("/api/veterinario/**")
                 .hasAnyRole("EMPLEADO", "GERENTE")
 
-                // Consultas de mascotas
+                // Consulta de mascotas
                 .requestMatchers(
-                    HttpMethod.GET, "/api/mascotas/**"
-                ).hasAnyRole("CLIENTE", "EMPLEADO", "GERENTE")
+                    HttpMethod.GET,
+                    "/api/mascotas/**"
+                ).hasAnyRole(
+                    "CLIENTE",
+                    "EMPLEADO",
+                    "GERENTE"
+                )
 
                 // Otras solicitudes requieren autenticación
                 .anyRequest().authenticated()
             )
+
             .userDetailsService(usuarioDetailsService)
+
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .sessionCreationPolicy(
+                    SessionCreationPolicy.STATELESS
+                )
             )
+
             .httpBasic(basic -> basic.disable())
+
             .formLogin(form -> form.disable())
+
             .addFilterBefore(
                 jwtFilter,
                 UsernamePasswordAuthenticationFilter.class
@@ -80,6 +101,7 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration configuration)
             throws Exception {
+
         return configuration.getAuthenticationManager();
     }
 }
